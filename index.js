@@ -1,0 +1,609 @@
+/**
+ * Time Interval Picker.
+ */
+
+import React, { PureComponent } from 'react';
+import PropTypes from 'prop-types';
+import { StyleSheet, View, PanResponder, Animated, ART } from 'react-native';
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dragged: {
+    backgroundColor: 'transparent',
+    position: 'absolute',
+  },
+  arc: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+  },
+});
+
+const pointDistance = (x, y) => Math.sqrt(x * x + y * y);
+const DAY_MINS = 24 * 60;
+const timeDistance = (a, b) => {
+  const aMins = a.hour * 60 + a.minute;
+  const bMins = b.hour * 60 + b.minute;
+  return Math.min(
+    Math.abs(aMins - bMins),
+    Math.abs(aMins + DAY_MINS - bMins),
+    Math.abs(aMins - DAY_MINS - bMins),
+  );
+};
+const turnTime = ({ hour, minute }, diffMinutes, previous) => {
+  const result = {};
+  result.minute = (minute + diffMinutes) % 60;
+  if (result.minute < 0) {
+    result.minute += 60;
+  }
+  const surplusHours = Math.floor((minute + diffMinutes) / 60);
+  result.hour = (hour + surplusHours) % 12;
+  if (result.hour < 0) {
+    result.hour += 12;
+  }
+
+  if (
+    timeDistance(result, previous) >
+    timeDistance({ hour: result.hour + 12, minute: result.minute }, previous)
+  ) {
+    result.hour += 12;
+  }
+  return result;
+};
+const createPanResponder = (
+  animatedPositionValue,
+  getActualPosition,
+  onRelease,
+) =>
+  PanResponder.create({
+    onMoveShouldSetPanResponderCapture: () => true,
+    onPanResponderGrant: () => {
+      animatedPositionValue.setOffset(getActualPosition());
+      animatedPositionValue.setValue({ x: 0, y: 0 });
+    },
+    onPanResponderMove: Animated.event([
+      null,
+      { dx: animatedPositionValue.x, dy: animatedPositionValue.y },
+    ]),
+    onPanResponderRelease: () => {
+      onRelease();
+    },
+  });
+
+/**
+ * Time Interval Picker component.
+ * @class TimeInterval
+ * @extends PureComponent
+ */
+export default class TimeInterval extends PureComponent {
+  static propTypes = {
+    start: PropTypes.shape({
+      hour: PropTypes.number.isRequired,
+      minute: PropTypes.number.isRequired,
+    }).isRequired,
+    stop: PropTypes.shape({
+      hour: PropTypes.number.isRequired,
+      minute: PropTypes.number.isRequired,
+    }).isRequired,
+    onChange: PropTypes.func,
+    onRelease: PropTypes.func.isRequired,
+    componentSize: PropTypes.number.isRequired,
+    indicatorSize: PropTypes.number.isRequired,
+    lineWidth: PropTypes.number.isRequired,
+    lineColor: PropTypes.string.isRequired,
+    startIndicator: PropTypes.func.isRequired,
+    stopIndicator: PropTypes.func.isRequired,
+    background: PropTypes.func,
+    allowLineDrag: PropTypes.bool,
+    disabled: PropTypes.bool,
+  };
+
+  static defaultProps = {
+    background: null,
+    onChange: null,
+    allowLineDrag: true,
+    disabled: false,
+  };
+
+  /**
+   * Constructor
+   * @method constructor
+   * @param {Object} props Component properties
+   * @constructs Setup
+   */
+  constructor(props) {
+    super(props);
+    this.dragPositionToIndicatorPosition = this.dragPositionToIndicatorPosition.bind(
+      this,
+    );
+    this.indicatorPositionToTime = this.indicatorPositionToTime.bind(this);
+    this.timeToindicatorPosition = this.timeToindicatorPosition.bind(this);
+    this.positionToLinePosition = this.positionToLinePosition.bind(this);
+    this.updateArc = this.updateArc.bind(this);
+    this.updateIndicators = this.updateIndicators.bind(this);
+
+    this.state = {
+      start: props.start,
+      stop: props.stop,
+      startPosition: { x: 0, y: 0 },
+      stopPosition: { x: 0, y: 0 },
+      path: new ART.Path(),
+    };
+
+    const dragHandler = (stateTimeValue, setImagePosition) => value => {
+      const imagePos = this.dragPositionToIndicatorPosition(value);
+      if (imagePos) {
+        setImagePosition(imagePos);
+        this.setState(state => {
+          const previous = state[stateTimeValue];
+          const time = this.indicatorPositionToTime(value);
+          if (
+            timeDistance(time, previous) >
+            timeDistance(
+              { hour: time.hour + 12, minute: time.minute },
+              previous,
+            )
+          ) {
+            time.hour += 12;
+          }
+          const result = {};
+          result[stateTimeValue] = time;
+          if (this.props.onChange) {
+            const vals = Object.assign(
+              { start: state.start, stop: state.stop },
+              result,
+            );
+            this.props.onChange(vals.start, vals.stop);
+          }
+          return result;
+        });
+      }
+    };
+
+    this.startDragPosition = new Animated.ValueXY();
+    this.startImagePosition = new Animated.ValueXY();
+    this.stopDragPosition = new Animated.ValueXY();
+    this.stopImagePosition = new Animated.ValueXY();
+
+    this.startDragPosition.addListener(
+      dragHandler('start', startPosition => {
+        this.startImagePosition.setValue(startPosition);
+        this.setState({ startPosition });
+      }),
+    );
+    this.startPanResponder = createPanResponder(
+      this.startDragPosition,
+      () => this.state.startPosition,
+      () => this.props.onRelease(this.state.start, this.state.stop),
+    );
+
+    this.stopDragPosition.addListener(
+      dragHandler('stop', stopPosition => {
+        this.stopImagePosition.setValue(stopPosition);
+        this.setState({ stopPosition });
+      }),
+    );
+    this.stopPanResponder = createPanResponder(
+      this.stopDragPosition,
+      () => this.state.stopPosition,
+      () => this.props.onRelease(this.state.start, this.state.stop),
+    );
+
+    this.turningPanResponder = PanResponder.create({
+      // filter touch events outside arc line
+      onMoveShouldSetPanResponderCapture: (
+        { nativeEvent: { locationX, locationY } },
+        { dx, dy },
+      ) => {
+        const { allowLineDrag, disabled } = this.props;
+        if (!allowLineDrag || disabled) {
+          return false;
+        }
+
+        const x = locationX - dx;
+        const y = locationY - dy;
+        if (
+          this.lastTurningCapture &&
+          this.lastTurningCapture.x === x &&
+          this.lastTurningCapture.y === y
+        ) {
+          // drop previously requested
+          return false;
+        }
+        this.lastTurningCapture = { x, y };
+
+        // drop touches not in the distance of arc line
+        const { componentSize, indicatorSize, lineWidth } = this.props;
+        const componentRadius = componentSize / 2;
+        const distance = pointDistance(
+          x - componentRadius,
+          y - componentRadius,
+        );
+        if (
+          distance > componentRadius - indicatorSize / 2 + lineWidth / 2 ||
+          distance < componentRadius - indicatorSize / 2 - lineWidth / 2
+        ) {
+          return false;
+        }
+
+        // accept touches inside active hours
+        const time = this.indicatorPositionToTime({ x, y });
+        const startMinutes =
+          (this.state.start.hour % 12) * 60 + this.state.start.minute;
+        const stopMinutes =
+          (this.state.stop.hour % 12) * 60 + this.state.stop.minute;
+        const minutes = time.hour * 60 + time.minute;
+        if (
+          (startMinutes < stopMinutes &&
+            minutes <= stopMinutes &&
+            minutes >= startMinutes) ||
+          (startMinutes > stopMinutes &&
+            (minutes <= stopMinutes || minutes >= startMinutes))
+        ) {
+          return true;
+        }
+
+        return false;
+      },
+
+      onPanResponderGrant: () => {
+        const { hour, minute } = this.indicatorPositionToTime(
+          this.lastTurningCapture,
+        );
+        this.turningTimeOffset = {
+          minutes: hour * 60 + minute,
+          start: this.state.start,
+          stop: this.state.stop,
+        };
+      },
+      onPanResponderMove: ({ nativeEvent: { locationX: x, locationY: y } }) => {
+        const { hour, minute } = this.indicatorPositionToTime({ x, y });
+        const { minutes, start, stop } = this.turningTimeOffset;
+        const diff = hour * 60 + minute - minutes;
+        const state = {
+          start: turnTime(start, diff, this.state.start),
+          stop: turnTime(stop, diff, this.state.stop),
+        };
+        this.updateIndicators(state);
+        this.setState(state);
+      },
+      onPanResponderRelease: () => {
+        this.lastTurningCapture = null;
+        this.turningTimeOffset = null;
+        this.props.onRelease(this.state.start, this.state.stop);
+      },
+    });
+  }
+
+  /**
+   * @returns {undefined}
+   */
+  componentDidMount() {
+    this.updateIndicators(this.state);
+  }
+
+  /**
+   * @param {Object} dragPosition Relative position of the touch
+   * @returns {Object} indicator position
+   */
+  dragPositionToIndicatorPosition(dragPosition) {
+    const { componentSize, indicatorSize } = this.props;
+    const componentRadius = componentSize / 2;
+    const indicatorRadius = indicatorSize / 2;
+    const x = dragPosition.x + indicatorRadius - componentRadius;
+    const y = dragPosition.y + indicatorRadius - componentRadius;
+    const ratio = pointDistance(x, y) / (componentRadius - indicatorRadius);
+    if (ratio > 0.2 && ratio < 2) {
+      return {
+        x: x / ratio + componentRadius - indicatorRadius,
+        y: y / ratio + componentRadius - indicatorRadius,
+      };
+    }
+    return null;
+  }
+
+  /**
+   * @param {Object} indicatorPosition Relative position of the indicator
+   * @returns {Object} Hours, minutes on the clock
+   */
+  indicatorPositionToTime(indicatorPosition) {
+    const { componentSize, indicatorSize } = this.props;
+    const componentRadius = componentSize / 2;
+    const indicatorRadius = indicatorSize / 2;
+    const x = indicatorPosition.x + indicatorRadius - componentRadius;
+    const y = indicatorPosition.y + indicatorRadius - componentRadius;
+    let hours;
+    if (!x) {
+      hours = y > 0 ? 6 : 0;
+    } else {
+      hours = (1 + (2 * Math.atan(y / x)) / Math.PI) * 3;
+      hours = x > 0 ? hours : 6 + hours;
+    }
+    const hour = Math.floor(hours);
+    return { hour, minute: Math.floor(60 * (hours - hour)) };
+  }
+
+  /**
+   * @param {Object} time Clock time
+   * @returns {Object} indicator position
+   */
+  timeToindicatorPosition({ hour, minute }) {
+    const { componentSize, indicatorSize } = this.props;
+    const radius = componentSize / 2 - indicatorSize / 2;
+    const time = hour * 60 + minute;
+    const x = Math.sin((4 * Math.PI * time) / DAY_MINS) * radius;
+    const y = Math.cos((4 * Math.PI * time) / DAY_MINS) * radius;
+    return {
+      x: x + componentSize / 2 - indicatorSize / 2,
+      y: componentSize / 2 - indicatorSize / 2 - y,
+    };
+  }
+
+  /**
+   * @param {Object} position Relative position of the point
+   * @param {boolean} out Inidicator of outer/inner point
+   * @returns {Object} line position
+   */
+  positionToLinePosition(position, out = true) {
+    const { componentSize, indicatorSize, lineWidth } = this.props;
+    const componentRadius = componentSize / 2;
+    const x = position.x - componentRadius;
+    const y = position.y - componentRadius;
+    const ratio =
+      pointDistance(x, y) /
+      (componentRadius -
+        indicatorSize / 2 +
+        (out ? lineWidth / 2 : -lineWidth / 2));
+    return {
+      x: x / ratio + componentRadius,
+      y: y / ratio + componentRadius,
+    };
+  }
+
+  /**
+   * @returns {Object} ART Path instance
+   */
+  updateArc() {
+    const { componentSize, indicatorSize, lineWidth } = this.props;
+    const { start, stop, startPosition, stopPosition, path } = this.state;
+
+    const SIDE = {
+      TOP: {
+        in: {
+          x: componentSize / 2 + indicatorSize / 4,
+          y: indicatorSize / 2 + lineWidth / 2,
+        },
+        out: {
+          x: componentSize / 2 + indicatorSize / 4,
+          y: indicatorSize / 2 - lineWidth / 2,
+        },
+      },
+      RIGHT: {
+        in: {
+          x: componentSize - indicatorSize / 2 - lineWidth / 2,
+          y: componentSize / 2 + indicatorSize / 4,
+        },
+        out: {
+          x: componentSize - indicatorSize / 2 + lineWidth / 2,
+          y: componentSize / 2 + indicatorSize / 4,
+        },
+      },
+      BOTTOM: {
+        in: {
+          x: componentSize / 2 + indicatorSize / 4,
+          y: componentSize - indicatorSize / 2 - lineWidth / 2,
+        },
+        out: {
+          x: componentSize / 2 + indicatorSize / 4,
+          y: componentSize - indicatorSize / 2 + lineWidth / 2,
+        },
+      },
+      LEFT: {
+        in: {
+          x: indicatorSize / 2 + lineWidth / 2,
+          y: componentSize / 2 + indicatorSize / 4,
+        },
+        out: {
+          x: indicatorSize / 2 - lineWidth / 2,
+          y: componentSize / 2 + indicatorSize / 4,
+        },
+      },
+    };
+    const getNearestSide = ({ hour }) => {
+      const clockHour = hour % 12;
+      if (clockHour < 3) {
+        return SIDE.RIGHT;
+      }
+      if (clockHour < 6) {
+        return SIDE.BOTTOM;
+      }
+      if (clockHour < 9) {
+        return SIDE.LEFT;
+      }
+      return SIDE.TOP;
+    };
+    const getNextSide = side => {
+      switch (side) {
+        case SIDE.TOP:
+          return SIDE.RIGHT;
+        case SIDE.RIGHT:
+          return SIDE.BOTTOM;
+        case SIDE.BOTTOM:
+          return SIDE.LEFT;
+        default:
+          return SIDE.TOP;
+      }
+    };
+
+    const sides = [];
+    let side = getNearestSide(start);
+    if (side === getNearestSide(stop)) {
+      const startClockMinutes = (start.hour % 12) * 60 + start.minute;
+      const stopClockMinutes = (stop.hour % 12) * 60 + stop.minute;
+      if (startClockMinutes > stopClockMinutes) {
+        for (let i = 0; i < 4; i += 1) {
+          sides.push(side);
+          side = getNextSide(side);
+        }
+      }
+    } else {
+      while (side !== getNearestSide(stop)) {
+        sides.push(side);
+        side = getNextSide(side);
+      }
+    }
+
+    const arcStart = {
+      in: this.positionToLinePosition(
+        {
+          x: startPosition.x + indicatorSize / 2,
+          y: startPosition.y + indicatorSize / 2,
+        },
+        false,
+      ),
+      out: this.positionToLinePosition(
+        {
+          x: startPosition.x + indicatorSize / 2,
+          y: startPosition.y + indicatorSize / 2,
+        },
+        true,
+      ),
+    };
+    const arcStop = {
+      in: this.positionToLinePosition(
+        {
+          x: stopPosition.x + indicatorSize / 2,
+          y: stopPosition.y + indicatorSize / 2,
+        },
+        false,
+      ),
+      out: this.positionToLinePosition(
+        {
+          x: stopPosition.x + indicatorSize / 2,
+          y: stopPosition.y + indicatorSize / 2,
+        },
+        true,
+      ),
+    };
+    const arcRadius = componentSize / 2 - indicatorSize / 2;
+    path.reset().moveTo(arcStart.in.x, arcStart.in.y);
+    sides.forEach(s =>
+      path.arcTo(
+        s.in.x,
+        s.in.y,
+        arcRadius - lineWidth / 2,
+        arcRadius - lineWidth / 2,
+      ),
+    );
+    path
+      .arcTo(
+        arcStop.in.x,
+        arcStop.in.y,
+        arcRadius - lineWidth / 2,
+        arcRadius - lineWidth / 2,
+      )
+      .lineTo(arcStop.out.x, arcStop.out.y);
+    sides
+      .reverse()
+      .forEach(s =>
+        path.counterArcTo(
+          s.out.x,
+          s.out.y,
+          arcRadius + lineWidth / 2,
+          arcRadius + lineWidth / 2,
+        ),
+      );
+    path.counterArcTo(
+      arcStart.out.x,
+      arcStart.out.y,
+      arcRadius + lineWidth / 2,
+      arcRadius + lineWidth / 2,
+    );
+    return path.close();
+  }
+
+  /**
+   * @returns {undefined}
+   */
+  updateIndicators({ start, stop }) {
+    const startPosition = this.timeToindicatorPosition(start);
+    const stopPosition = this.timeToindicatorPosition(stop);
+    this.startImagePosition.setValue(startPosition);
+    this.stopImagePosition.setValue(stopPosition);
+    this.setState({ startPosition, stopPosition });
+
+    if (this.props.onChange) {
+      this.props.onChange(start, stop);
+    }
+  }
+
+  /**
+   * Render method.
+   * @method render
+   * @returns {string} Markup for the component.
+   */
+  render() {
+    const {
+      componentSize,
+      indicatorSize,
+      lineColor,
+      startIndicator,
+      stopIndicator,
+      background,
+      disabled,
+    } = this.props;
+
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            width: componentSize,
+            height: componentSize,
+          },
+        ]}
+      >
+        {background && background()}
+
+        <View style={styles.arc} {...this.turningPanResponder.panHandlers}>
+          <ART.Surface width={componentSize} height={componentSize}>
+            <ART.Shape d={this.updateArc()} fill={lineColor} />
+          </ART.Surface>
+        </View>
+
+        <Animated.View
+          {...(disabled ? {} : this.startPanResponder.panHandlers)}
+          style={[
+            this.startImagePosition.getLayout(),
+            styles.dragged,
+            {
+              width: indicatorSize,
+              height: indicatorSize,
+            },
+          ]}
+        >
+          {startIndicator && startIndicator()}
+        </Animated.View>
+        <Animated.View
+          {...(disabled ? {} : this.stopPanResponder.panHandlers)}
+          style={[
+            this.stopImagePosition.getLayout(),
+            styles.dragged,
+            {
+              width: indicatorSize,
+              height: indicatorSize,
+            },
+          ]}
+        >
+          {stopIndicator && stopIndicator()}
+        </Animated.View>
+      </View>
+    );
+  }
+}
