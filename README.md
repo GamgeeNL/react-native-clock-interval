@@ -37,14 +37,14 @@ import TimeInterval from 'react-native-clock-interval';
   componentSize={300}
   indicatorSize={40}
   lineWidth={40}
-  lineColor="green"
+  step={5 /* minutes */}
+  lineColor={"green" /* or array of two colors for gradient, eg.: ['gold', 'yellow']*/}
   start={{hour: 22, minute: 0}}
   stop={{hour: 7, minute: 30}}
   onChange={(start, stop) => {/* called on every change, use with caution */}}
   onRelease={(start, stop) => {/* called in the end of interaction */}}
-  startIndicator={() => <View>{/* custom indicator layout */}</View>} 
-  stopIndicator={() => <View>{/* custom indicator layout */}</View>} 
-  background={() => <View>{/* custom layout */}</View>}
+  startIndicator={() => <View>{/* custom indicator layout */}</View>}
+  stopIndicator={() => <View>{/* custom indicator layout */}</View>}
   />
 ```
 

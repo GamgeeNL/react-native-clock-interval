@@ -5,6 +5,7 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { StyleSheet, View, PanResponder, Animated, ART } from 'react-native';
+import TinyColor from 'tinycolor2';
 
 const styles = StyleSheet.create({
   container: {
@@ -26,6 +27,8 @@ const styles = StyleSheet.create({
 });
 
 const pointDistance = (x, y) => Math.sqrt(x * x + y * y);
+const distanceBetweenPoints = (a, b) =>
+  Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
 const DAY_MINS = 24 * 60;
 const timeDistance = (a, b) => {
   const aMins = a.hour * 60 + a.minute;
@@ -91,21 +94,24 @@ export default class TimeInterval extends PureComponent {
       hour: PropTypes.number.isRequired,
       minute: PropTypes.number.isRequired,
     }).isRequired,
+    step: PropTypes.number,
     onChange: PropTypes.func,
     onRelease: PropTypes.func.isRequired,
     componentSize: PropTypes.number.isRequired,
     indicatorSize: PropTypes.number.isRequired,
     lineWidth: PropTypes.number.isRequired,
-    lineColor: PropTypes.string.isRequired,
+    lineColor: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.arrayOf(PropTypes.string),
+    ]).isRequired,
     startIndicator: PropTypes.func.isRequired,
     stopIndicator: PropTypes.func.isRequired,
-    background: PropTypes.func,
     allowLineDrag: PropTypes.bool,
     disabled: PropTypes.bool,
   };
 
   static defaultProps = {
-    background: null,
+    step: 1,
     onChange: null,
     allowLineDrag: true,
     disabled: false,
@@ -133,7 +139,6 @@ export default class TimeInterval extends PureComponent {
       stop: props.stop,
       startPosition: { x: 0, y: 0 },
       stopPosition: { x: 0, y: 0 },
-      path: new ART.Path(),
     };
 
     const dragHandler = (stateTimeValue, setImagePosition) => value => {
@@ -289,6 +294,23 @@ export default class TimeInterval extends PureComponent {
   }
 
   /**
+   * @param {Object} prevProps Old properties
+   * @returns {undefined}
+   */
+  componentDidUpdate(prevProps) {
+    const { start, stop } = this.props;
+    if (
+      start.hour !== prevProps.start.hour ||
+      start.minute !== prevProps.start.minute ||
+      stop.hour !== prevProps.stop.hour ||
+      stop.minute !== prevProps.stop.minute
+    ) {
+      this.setState({ start, stop });
+      this.updateIndicators({ start, stop });
+    }
+  }
+
+  /**
    * @param {Object} dragPosition Relative position of the touch
    * @returns {Object} indicator position
    */
@@ -313,7 +335,7 @@ export default class TimeInterval extends PureComponent {
    * @returns {Object} Hours, minutes on the clock
    */
   indicatorPositionToTime(indicatorPosition) {
-    const { componentSize, indicatorSize } = this.props;
+    const { componentSize, indicatorSize, step } = this.props;
     const componentRadius = componentSize / 2;
     const indicatorRadius = indicatorSize / 2;
     const x = indicatorPosition.x + indicatorRadius - componentRadius;
@@ -326,7 +348,10 @@ export default class TimeInterval extends PureComponent {
       hours = x > 0 ? hours : 6 + hours;
     }
     const hour = Math.floor(hours);
-    return { hour, minute: Math.floor(60 * (hours - hour)) };
+    let minute = 60 * (hours - hour);
+    minute -= ((minute / step) % 1) * step;
+    minute = Math.round(minute);
+    return { hour, minute };
   }
 
   /**
@@ -370,8 +395,8 @@ export default class TimeInterval extends PureComponent {
    * @returns {Object} ART Path instance
    */
   updateArc() {
-    const { componentSize, indicatorSize, lineWidth } = this.props;
-    const { start, stop, startPosition, stopPosition, path } = this.state;
+    const { componentSize, indicatorSize, lineWidth, lineColor } = this.props;
+    const { start, stop, startPosition, stopPosition } = this.state;
 
     const SIDE = {
       TOP: {
@@ -492,7 +517,72 @@ export default class TimeInterval extends PureComponent {
       ),
     };
     const arcRadius = componentSize / 2 - indicatorSize / 2;
-    path.reset().moveTo(arcStart.in.x, arcStart.in.y);
+
+    if (Array.isArray(lineColor)) {
+      const startColor = TinyColor(lineColor[0]).toRgb();
+      const stopColor = TinyColor(lineColor[1]).toRgb();
+      const getRatioColor = ratio => {
+        // ratio: 0..1
+        const getRatio = (a, b) => a + ratio * (b - a);
+        return TinyColor({
+          r: getRatio(startColor.r, stopColor.r),
+          g: getRatio(startColor.g, stopColor.g),
+          b: getRatio(startColor.b, stopColor.b),
+          a: getRatio(startColor.a, stopColor.a),
+        }).toHexString();
+      };
+
+      const points = [arcStart, ...sides, arcStop];
+
+      let totalDistance = 0;
+      for (let i = 1; i < points.length; i += 1) {
+        totalDistance += distanceBetweenPoints(points[i - 1].in, points[i].in);
+      }
+
+      let elapsedDistance = 0;
+      const result = [];
+      for (let i = 1; i < points.length; i += 1) {
+        const a = points[i - 1];
+        const b = points[i];
+        const path = new ART.Path();
+        path.moveTo(a.in.x, a.in.y);
+        path
+          .arcTo(
+            b.in.x,
+            b.in.y,
+            arcRadius - lineWidth / 2,
+            arcRadius - lineWidth / 2,
+          )
+          .lineTo(b.out.x, b.out.y);
+        path.counterArcTo(
+          a.out.x,
+          a.out.y,
+          arcRadius + lineWidth / 2,
+          arcRadius + lineWidth / 2,
+        );
+
+        const distance = distanceBetweenPoints(a.in, b.in);
+        result.push({
+          id: `gradient-${i}`,
+          arc: path.close(),
+          fill: new ART.LinearGradient(
+            {
+              '0': getRatioColor(elapsedDistance / totalDistance),
+              '1': getRatioColor((elapsedDistance + distance) / totalDistance),
+            },
+            `${a.in.x}`,
+            `${a.in.y}`,
+            `${b.in.x}`,
+            `${b.in.y}`,
+          ),
+        });
+        elapsedDistance += distance;
+      }
+      return result;
+    }
+
+    const path = new ART.Path();
+    path.moveTo(arcStart.in.x, arcStart.in.y);
     sides.forEach(s =>
       path.arcTo(
         s.in.x,
@@ -525,7 +615,7 @@ export default class TimeInterval extends PureComponent {
       arcRadius + lineWidth / 2,
       arcRadius + lineWidth / 2,
     );
-    return path.close();
+    return [{ id: 'simple', arc: path.close(), fill: lineColor }];
   }
 
   /**
@@ -552,10 +642,8 @@ export default class TimeInterval extends PureComponent {
     const {
       componentSize,
       indicatorSize,
-      lineColor,
       startIndicator,
       stopIndicator,
-      background,
       disabled,
     } = this.props;
 
@@ -569,11 +657,11 @@ export default class TimeInterval extends PureComponent {
           },
         ]}
       >
-        {background && background()}
-
         <View style={styles.arc} {...this.turningPanResponder.panHandlers}>
           <ART.Surface width={componentSize} height={componentSize}>
-            <ART.Shape d={this.updateArc()} fill={lineColor} />
+            {this.updateArc().map(({ id, arc, fill }) => (
+              <ART.Shape key={id} d={arc} fill={fill} />
+            ))}
           </ART.Surface>
         </View>
 

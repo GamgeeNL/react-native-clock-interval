@@ -64,7 +64,7 @@ declare module 'react-native-clock-interval' {
 		 * @type {string}
 		 * @memberof TimeIntervalPropTypes
 		 */
-    lineColor: string
+    lineColor: string | Array<string>
 
     /**
 		 * Initial starting time
@@ -101,6 +101,15 @@ declare module 'react-native-clock-interval' {
 		allowLineDrag?: boolean
 
 		/**
+		 * Interaction step (minutes)
+		 *
+		 * @type {number}
+		 * @memberof TimeIntervalPropTypes
+     * @default 1
+		 */
+		step?: number
+
+		/**
 		 * Called in the end of interaction
 		 *
 		 * @type {function}
@@ -131,14 +140,6 @@ declare module 'react-native-clock-interval' {
 		 * @memberof TimeIntervalPropTypes
 		 */
 		stopIndicator?(): React.ReactNode
-
-		/**
-		 * Defines a component to display on background
-		 *
-		 * @type {function}
-		 * @memberof TimeIntervalPropTypes
-		 */
-		background?(): React.ReactNode
   }
 
 	export class TimeInterval extends React.PureComponent<TimeIntervalPropTypes> {}
