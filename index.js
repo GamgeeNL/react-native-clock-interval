@@ -133,6 +133,7 @@ export default class TimeInterval extends PureComponent {
     this.positionToLinePosition = this.positionToLinePosition.bind(this);
     this.updateArc = this.updateArc.bind(this);
     this.updateIndicators = this.updateIndicators.bind(this);
+    this.reportUpdate = this.reportUpdate.bind(this);
 
     this.state = {
       start: props.start,
@@ -140,6 +141,8 @@ export default class TimeInterval extends PureComponent {
       startPosition: { x: 0, y: 0 },
       stopPosition: { x: 0, y: 0 },
     };
+    this.lastReportedStart = {};
+    this.lastReportedStop = {};
 
     const dragHandler = (stateTimeValue, setImagePosition) => value => {
       const imagePos = this.dragPositionToIndicatorPosition(value);
@@ -164,7 +167,7 @@ export default class TimeInterval extends PureComponent {
               { start: state.start, stop: state.stop },
               result,
             );
-            this.props.onChange(vals.start, vals.stop);
+            this.reportUpdate(vals.start, vals.stop);
           }
           return result;
         });
@@ -629,6 +632,19 @@ export default class TimeInterval extends PureComponent {
     this.setState({ startPosition, stopPosition });
 
     if (this.props.onChange) {
+      this.reportUpdate(start, stop);
+    }
+  }
+
+  reportUpdate(start, stop) {
+    if (
+      this.lastReportedStart.hour !== start.hour ||
+      this.lastReportedStart.minute !== start.minute ||
+      this.lastReportedStop.hour !== stop.hour ||
+      this.lastReportedStop.minute !== stop.minute
+    ) {
+      this.lastReportedStart = start;
+      this.lastReportedStop = stop;
       this.props.onChange(start, stop);
     }
   }
