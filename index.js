@@ -79,6 +79,21 @@ const createPanResponder = (
     },
   });
 
+const updateFilter = (handler, parser) => {
+  let updates = [];
+  return value => {
+    updates.push(parser ? parser(value) : value);
+    requestAnimationFrame(() => {
+      if (!updates.length) {
+        return;
+      }
+      const val = updates.pop();
+      updates = [];
+      handler(val);
+    });
+  };
+};
+
 /**
  * Time Interval Picker component.
  * @class TimeInterval
@@ -144,9 +159,12 @@ export default class TimeInterval extends PureComponent {
     this.lastReportedStart = {};
     this.lastReportedStop = {};
 
-    const dragHandler = (stateTimeValue, setImagePosition) => value => {
-      const imagePos = this.dragPositionToIndicatorPosition(value);
-      if (imagePos) {
+    const dragHandler = (stateTimeValue, setImagePosition) =>
+      updateFilter(value => {
+        const imagePos = this.dragPositionToIndicatorPosition(value);
+        if (!imagePos) {
+          return;
+        }
         setImagePosition(imagePos);
         this.setState(state => {
           const previous = state[stateTimeValue];
@@ -171,8 +189,7 @@ export default class TimeInterval extends PureComponent {
           }
           return result;
         });
-      }
-    };
+      });
 
     this.startDragPosition = new Animated.ValueXY();
     this.startImagePosition = new Animated.ValueXY();
@@ -270,17 +287,22 @@ export default class TimeInterval extends PureComponent {
           stop: this.state.stop,
         };
       },
-      onPanResponderMove: ({ nativeEvent: { locationX: x, locationY: y } }) => {
-        const { hour, minute } = this.indicatorPositionToTime({ x, y });
-        const { minutes, start, stop } = this.turningTimeOffset;
-        const diff = hour * 60 + minute - minutes;
-        const state = {
-          start: turnTime(start, diff, this.state.start),
-          stop: turnTime(stop, diff, this.state.stop),
-        };
-        this.updateIndicators(state);
-        this.setState(state);
-      },
+      onPanResponderMove: updateFilter(
+        ({ x, y }) => {
+          if (!this.turningTimeOffset) {
+            return;
+          }
+          const { hour, minute } = this.indicatorPositionToTime({ x, y });
+          const { minutes, start, stop } = this.turningTimeOffset;
+          const diff = hour * 60 + minute - minutes;
+          const state = {
+            start: turnTime(start, diff, this.state.start),
+            stop: turnTime(stop, diff, this.state.stop),
+          };
+          this.updateIndicators(state);
+          this.setState(state);
+        }, ({ nativeEvent: { locationX: x, locationY: y } }) => ({x, y}),
+      ),
       onPanResponderRelease: () => {
         this.lastTurningCapture = null;
         this.turningTimeOffset = null;
