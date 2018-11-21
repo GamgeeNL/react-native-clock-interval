@@ -165,10 +165,11 @@ export default class TimeInterval extends PureComponent {
         if (!imagePos) {
           return;
         }
-        setImagePosition(imagePos);
+
+        const time = this.indicatorPositionToTime(value);
+        setImagePosition(this.timeToindicatorPosition(time));
         this.setState(state => {
           const previous = state[stateTimeValue];
-          const time = this.indicatorPositionToTime(value);
           if (
             timeDistance(time, previous) >
             timeDistance(
@@ -301,7 +302,8 @@ export default class TimeInterval extends PureComponent {
           };
           this.updateIndicators(state);
           this.setState(state);
-        }, ({ nativeEvent: { locationX: x, locationY: y } }) => ({x, y}),
+        },
+        ({ nativeEvent: { locationX: x, locationY: y } }) => ({ x, y }),
       ),
       onPanResponderRelease: () => {
         this.lastTurningCapture = null;
@@ -372,11 +374,8 @@ export default class TimeInterval extends PureComponent {
       hours = (1 + (2 * Math.atan(y / x)) / Math.PI) * 3;
       hours = x > 0 ? hours : 6 + hours;
     }
-    const hour = Math.floor(hours);
-    let minute = 60 * (hours - hour);
-    minute -= ((minute / step) % 1) * step;
-    minute = Math.round(minute);
-    return { hour, minute };
+    const minutes = Math.round((hours * 60) / step) * step;
+    return { hour: Math.floor(minutes / 60), minute: minutes % 60 };
   }
 
   /**
