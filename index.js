@@ -167,7 +167,11 @@ export default class TimeInterval extends PureComponent {
         }
 
         const time = this.indicatorPositionToTime(value);
-        setImagePosition(this.timeToindicatorPosition(time));
+        const enabled = setImagePosition(this.timeToindicatorPosition(time));
+        if (!enabled) {
+          return;
+        }
+
         this.setState(state => {
           const previous = state[stateTimeValue];
           if (
@@ -178,6 +182,7 @@ export default class TimeInterval extends PureComponent {
             )
           ) {
             time.hour += 12;
+            time.hour %= 24;
           }
           const result = {};
           result[stateTimeValue] = time;
@@ -197,28 +202,50 @@ export default class TimeInterval extends PureComponent {
     this.stopDragPosition = new Animated.ValueXY();
     this.stopImagePosition = new Animated.ValueXY();
 
-    this.startDragPosition.addListener(
-      dragHandler('start', startPosition => {
-        this.startImagePosition.setValue(startPosition);
-        this.setState({ startPosition });
-      }),
-    );
+    let startPanEnabled = false;
     this.startPanResponder = createPanResponder(
       this.startDragPosition,
-      () => this.state.startPosition,
-      () => this.props.onRelease(this.state.start, this.state.stop),
+      () => {
+        startPanEnabled = true;
+        return this.state.startPosition;
+      },
+      () => {
+        startPanEnabled = false;
+        this.props.onRelease(this.state.start, this.state.stop);
+      },
     );
-
-    this.stopDragPosition.addListener(
-      dragHandler('stop', stopPosition => {
-        this.stopImagePosition.setValue(stopPosition);
-        this.setState({ stopPosition });
+    this.startDragPosition.addListener(
+      dragHandler('start', startPosition => {
+        if (!startPanEnabled) {
+          return false;
+        }
+        this.startImagePosition.setValue(startPosition);
+        this.setState({ startPosition });
+        return true;
       }),
     );
+
+    let stopPanEnabled = false;
     this.stopPanResponder = createPanResponder(
       this.stopDragPosition,
-      () => this.state.stopPosition,
-      () => this.props.onRelease(this.state.start, this.state.stop),
+      () => {
+        stopPanEnabled = true;
+        return this.state.stopPosition;
+      },
+      () => {
+        stopPanEnabled = false;
+        this.props.onRelease(this.state.start, this.state.stop);
+      },
+    );
+    this.stopDragPosition.addListener(
+      dragHandler('stop', stopPosition => {
+        if (!stopPanEnabled) {
+          return false;
+        }
+        this.stopImagePosition.setValue(stopPosition);
+        this.setState({ stopPosition });
+        return true;
+      }),
     );
 
     this.turningPanResponder = PanResponder.create({

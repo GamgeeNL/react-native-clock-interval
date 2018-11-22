@@ -1,6 +1,6 @@
 {
   "name": "react-native-clock-interval",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "React Native Time interval control similar to iOS12 Bedtime picker using ReactART",
   "main": "index.js",
   "scripts": {
