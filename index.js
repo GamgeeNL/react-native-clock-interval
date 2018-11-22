@@ -250,7 +250,7 @@ export default class TimeInterval extends PureComponent {
 
     this.turningPanResponder = PanResponder.create({
       // filter touch events outside arc line
-      onMoveShouldSetPanResponderCapture: (
+      onStartShouldSetPanResponderCapture: (
         { nativeEvent: { locationX, locationY } },
         { dx, dy },
       ) => {
@@ -305,7 +305,7 @@ export default class TimeInterval extends PureComponent {
         return false;
       },
 
-      onPanResponderGrant: () => {
+      onPanResponderGrant: ({ nativeEvent: { pageX, pageY } }) => {
         const { hour, minute } = this.indicatorPositionToTime(
           this.lastTurningCapture,
         );
@@ -313,13 +313,19 @@ export default class TimeInterval extends PureComponent {
           minutes: hour * 60 + minute,
           start: this.state.start,
           stop: this.state.stop,
+          pageX: pageX - this.lastTurningCapture.x,
+          pageY: pageY - this.lastTurningCapture.y,
         };
       },
       onPanResponderMove: updateFilter(
-        ({ x, y }) => {
+        ({ pageX, pageY }) => {
           if (!this.turningTimeOffset) {
             return;
           }
+
+          const x = pageX - this.turningTimeOffset.pageX;
+          const y = pageY - this.turningTimeOffset.pageY;
+
           const { hour, minute } = this.indicatorPositionToTime({ x, y });
           const { minutes, start, stop } = this.turningTimeOffset;
           const diff = hour * 60 + minute - minutes;
@@ -330,7 +336,7 @@ export default class TimeInterval extends PureComponent {
           this.updateIndicators(state);
           this.setState(state);
         },
-        ({ nativeEvent: { locationX: x, locationY: y } }) => ({ x, y }),
+        ({ nativeEvent: { pageX, pageY } }) => ({ pageX, pageY }),
       ),
       onPanResponderRelease: () => {
         this.lastTurningCapture = null;
@@ -443,7 +449,7 @@ export default class TimeInterval extends PureComponent {
   }
 
   /**
-   * @returns {Object} ART Path instance
+   * @returns {Array} ART Path instances
    */
   updateArc() {
     const { componentSize, indicatorSize, lineWidth, lineColor } = this.props;
@@ -522,6 +528,9 @@ export default class TimeInterval extends PureComponent {
     if (side === getNearestSide(stop)) {
       const startClockMinutes = (start.hour % 12) * 60 + start.minute;
       const stopClockMinutes = (stop.hour % 12) * 60 + stop.minute;
+      if (startClockMinutes === stopClockMinutes) {
+        return [];
+      }
       if (startClockMinutes > stopClockMinutes) {
         for (let i = 0; i < 4; i += 1) {
           sides.push(side);
