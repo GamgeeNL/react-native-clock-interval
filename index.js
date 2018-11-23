@@ -458,42 +458,42 @@ export default class TimeInterval extends PureComponent {
     const SIDE = {
       TOP: {
         in: {
-          x: componentSize / 2 + indicatorSize / 4,
+          x: componentSize / 2,
           y: indicatorSize / 2 + lineWidth / 2,
         },
         out: {
-          x: componentSize / 2 + indicatorSize / 4,
+          x: componentSize / 2,
           y: indicatorSize / 2 - lineWidth / 2,
         },
       },
       RIGHT: {
         in: {
           x: componentSize - indicatorSize / 2 - lineWidth / 2,
-          y: componentSize / 2 + indicatorSize / 4,
+          y: componentSize / 2,
         },
         out: {
           x: componentSize - indicatorSize / 2 + lineWidth / 2,
-          y: componentSize / 2 + indicatorSize / 4,
+          y: componentSize / 2,
         },
       },
       BOTTOM: {
         in: {
-          x: componentSize / 2 + indicatorSize / 4,
+          x: componentSize / 2,
           y: componentSize - indicatorSize / 2 - lineWidth / 2,
         },
         out: {
-          x: componentSize / 2 + indicatorSize / 4,
+          x: componentSize / 2,
           y: componentSize - indicatorSize / 2 + lineWidth / 2,
         },
       },
       LEFT: {
         in: {
           x: indicatorSize / 2 + lineWidth / 2,
-          y: componentSize / 2 + indicatorSize / 4,
+          y: componentSize / 2,
         },
         out: {
           x: indicatorSize / 2 - lineWidth / 2,
-          y: componentSize / 2 + indicatorSize / 4,
+          y: componentSize / 2,
         },
       },
     };
@@ -622,20 +622,24 @@ export default class TimeInterval extends PureComponent {
         );
 
         const distance = distanceBetweenPoints(a.in, b.in);
-        result.push({
-          id: `gradient-${i}`,
-          arc: path.close(),
-          fill: new ART.LinearGradient(
-            {
-              '0': getRatioColor(elapsedDistance / totalDistance),
-              '1': getRatioColor((elapsedDistance + distance) / totalDistance),
-            },
-            `${a.in.x}`,
-            `${a.in.y}`,
-            `${b.in.x}`,
-            `${b.in.y}`,
-          ),
-        });
+        if (distance > 0.1 || (i > 1 && i < points.length - 1)) {
+          result.push({
+            id: `gradient-${i}`,
+            arc: path.close(),
+            fill: new ART.LinearGradient(
+              {
+                '0': getRatioColor(elapsedDistance / totalDistance),
+                '1': getRatioColor(
+                  (elapsedDistance + distance) / totalDistance,
+                ),
+              },
+              `${a.in.x}`,
+              `${a.in.y}`,
+              `${b.in.x}`,
+              `${b.in.y}`,
+            ),
+          });
+        }
         elapsedDistance += distance;
       }
       return result;
