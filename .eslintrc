@@ -1,19 +1,23 @@
 {
   "extends": [
     "airbnb",
-    "prettier",
-    "prettier/flowtype",
-    "prettier/react"
+    "prettier"
   ],
   "plugins": [
     "prettier"
   ],
+  "globals": {
+    "requestAnimationFrame": true,
+  },
   "parser": "babel-eslint",
   "rules": {
+    "react/destructuring-assignment": 0,
     "react/forbid-prop-types": [0],
+    "react/static-property-placement": 0,
     "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx"] }],
+    "react/jsx-props-no-spreading": 0,
     "import/no-extraneous-dependencies": [0],
-    "import/no-unresolved": [2, { ignore: ['^react(-native)?$'] }],
+    "import/no-unresolved": [2, { "ignore": ["^react(-native)?$"] }],
     "import/extensions": [2, { "js": "never", "json": "always" }],
     "operator-assignment": [0]
   }

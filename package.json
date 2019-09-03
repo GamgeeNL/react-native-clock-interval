@@ -1,6 +1,6 @@
 {
   "name": "react-native-clock-interval",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "React Native Time interval control similar to iOS12 Bedtime picker using ReactART",
   "main": "index.js",
   "scripts": {
@@ -24,29 +24,30 @@
     "name": "Pavel Zarecky",
     "email": "iskander508@gmail.com"
   },
-  "homepage": "https://github.com/Iskander508/react-native-clock-interval",
+  "homepage": "https://github.com/GamgeeNL/react-native-clock-interval",
   "bugs": {
-    "url": "https://github.com/Iskander508/react-native-clock-interval/issues"
+    "url": "https://github.com/GamgeeNL/react-native-clock-interval/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/Iskander508/react-native-clock-interval.git"
+    "url": "git://github.com/GamgeeNL/react-native-clock-interval.git"
   },
   "license": "MIT",
   "devDependencies": {
     "babel": "^6.5.2",
-    "babel-eslint": "^7.0.0",
-    "eslint": "^3.7.1",
-    "eslint-config-airbnb": "^12.0.0",
-    "eslint-config-prettier": "^2.9.0",
-    "eslint-plugin-import": "^1.16.0",
-    "eslint-plugin-jsx-a11y": "^2.2.3",
-    "eslint-plugin-prettier": "^2.6.0",
-    "eslint-plugin-react": "^6.4.1",
-    "prettier": "^1.13.3"
+    "babel-eslint": "^10.0.3",
+    "eslint": "^6.3.0",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-config-prettier": "^6.1.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "eslint-plugin-prettier": "^3.1.0",
+    "eslint-plugin-react": "^7.14.3",
+    "eslint-plugin-react-hooks": "^1.7.0",
+    "prettier": "^1.18.2"
   },
   "dependencies": {
-    "prop-types": "^15.5.8",
+    "prop-types": "^15.7.2",
     "tinycolor2": "^1.4.1"
   },
   "typings": "index.d.ts"
