@@ -150,9 +150,10 @@ export default class TimeInterval extends PureComponent {
     this.updateIndicators = this.updateIndicators.bind(this);
     this.reportUpdate = this.reportUpdate.bind(this);
 
+    const setTimes = { start: props.start, stop: props.stop };
     this.state = {
-      start: props.start,
-      stop: props.stop,
+      ...setTimes,
+      setTimes,
       startPosition: { x: 0, y: 0 },
       stopPosition: { x: 0, y: 0 },
     };
@@ -378,12 +379,12 @@ export default class TimeInterval extends PureComponent {
    */
   static getDerivedStateFromProps({ start, stop }, state) {
     if (
-      start.hour !== state.start.hour ||
-      start.minute !== state.start.minute ||
-      stop.hour !== state.stop.hour ||
-      stop.minute !== state.stop.minute
+      start.hour !== state.setTimes.start.hour ||
+      start.minute !== state.setTimes.start.minute ||
+      stop.hour !== state.setTimes.stop.hour ||
+      stop.minute !== state.setTimes.stop.minute
     ) {
-      return { start, stop };
+      return { start, stop, setTimes: { start, stop } };
     }
 
     return null;
