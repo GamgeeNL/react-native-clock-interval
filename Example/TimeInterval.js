@@ -4,7 +4,13 @@
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
-import {StyleSheet, View, PanResponder, Animated, ART} from 'react-native';
+import { StyleSheet, View, PanResponder, Animated } from 'react-native';
+import {
+  Surface,
+  Shape,
+  Path,
+  LinearGradient,
+} from '@react-native-community/art';
 import TinyColor from 'tinycolor2';
 
 const styles = StyleSheet.create({
@@ -621,7 +627,7 @@ export default class TimeInterval extends PureComponent {
       for (let i = 1; i < points.length; i += 1) {
         const a = points[i - 1];
         const b = points[i];
-        const path = new ART.Path();
+        const path = new Path();
         path.moveTo(a.in.x, a.in.y);
         path
           .arcTo(
@@ -643,7 +649,7 @@ export default class TimeInterval extends PureComponent {
           result.push({
             id: `gradient-${i}`,
             arc: path.close(),
-            fill: new ART.LinearGradient(
+            fill: new LinearGradient(
               {
                 '0': getRatioColor(elapsedDistance / totalDistance),
                 '1': getRatioColor(
@@ -662,7 +668,7 @@ export default class TimeInterval extends PureComponent {
       return result;
     }
 
-    const path = new ART.Path();
+    const path = new Path();
     path.moveTo(arcStart.in.x, arcStart.in.y);
     sides.forEach(s =>
       path.arcTo(
@@ -749,13 +755,14 @@ export default class TimeInterval extends PureComponent {
             width: componentSize,
             height: componentSize,
           },
-        ]}>
+        ]}
+      >
         <View style={styles.arc} {...this.turningPanResponder.panHandlers}>
-          <ART.Surface width={componentSize} height={componentSize}>
-            {this.updateArc().map(({id, arc, fill}) => (
-              <ART.Shape key={id} d={arc} fill={fill} />
+          <Surface width={componentSize} height={componentSize}>
+            {this.updateArc().map(({ id, arc, fill }) => (
+              <Shape key={id} d={arc} fill={fill} />
             ))}
-          </ART.Surface>
+          </Surface>
         </View>
 
         <Animated.View
@@ -767,7 +774,8 @@ export default class TimeInterval extends PureComponent {
               width: indicatorSize,
               height: indicatorSize,
             },
-          ]}>
+          ]}
+        >
           {startIndicator && startIndicator()}
         </Animated.View>
         <Animated.View
@@ -779,7 +787,8 @@ export default class TimeInterval extends PureComponent {
               width: indicatorSize,
               height: indicatorSize,
             },
-          ]}>
+          ]}
+        >
           {stopIndicator && stopIndicator()}
         </Animated.View>
       </View>

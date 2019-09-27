@@ -835,10 +835,10 @@
     "@types/istanbul-reports" "^1.1.1"
     "@types/yargs" "^13.0.0"
 
-"@react-native-community/art@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@react-native-community/art/-/art-1.0.1.tgz#3066b3177c06453547b7199d532309b91d090c3b"
-  integrity sha512-1pVkvCsZQf7pf9BMXm+oD0LoQHJ8FRHo6VvOOJ8jRn5rpcOFThn8S5AO1qKL5JIjlxiM4e7umnR8+MsMy+pdKA==
+"@react-native-community/art@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@react-native-community/art/-/art-1.0.2.tgz#38671edcf4eb3d820d62dc5ba3a151d75352f847"
+  integrity sha512-GFqRy5DfHmD0LF+cIn1TPeNienFNTuLsv3SNq1vsg2J04l51ESSAUq7dY35cCE/g6Hfi9t8zx+A9sEMplRKZ0g==
   dependencies:
     art "^0.10.3"
     invariant "^2.2.4"
