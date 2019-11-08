@@ -2,7 +2,7 @@
  * Time Interval Picker.
  */
 
-import React, {PureComponent} from 'react';
+import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { StyleSheet, View, PanResponder, Animated } from 'react-native';
 import {
@@ -45,7 +45,7 @@ const timeDistance = (a, b) => {
     Math.abs(aMins - DAY_MINS - bMins),
   );
 };
-const turnTime = ({hour, minute}, diffMinutes, previous) => {
+const turnTime = ({ hour, minute }, diffMinutes, previous) => {
   const result = {};
   result.minute = (minute + diffMinutes) % 60;
   if (result.minute < 0) {
@@ -59,7 +59,7 @@ const turnTime = ({hour, minute}, diffMinutes, previous) => {
 
   if (
     timeDistance(result, previous) >
-    timeDistance({hour: result.hour + 12, minute: result.minute}, previous)
+    timeDistance({ hour: result.hour + 12, minute: result.minute }, previous)
   ) {
     result.hour += 12;
   }
@@ -74,11 +74,11 @@ const createPanResponder = (
     onMoveShouldSetPanResponderCapture: () => true,
     onPanResponderGrant: () => {
       animatedPositionValue.setOffset(getActualPosition());
-      animatedPositionValue.setValue({x: 0, y: 0});
+      animatedPositionValue.setValue({ x: 0, y: 0 });
     },
     onPanResponderMove: Animated.event([
       null,
-      {dx: animatedPositionValue.x, dy: animatedPositionValue.y},
+      { dx: animatedPositionValue.x, dy: animatedPositionValue.y },
     ]),
     onPanResponderRelease: () => {
       onRelease();
@@ -156,12 +156,12 @@ export default class TimeInterval extends PureComponent {
     this.updateIndicators = this.updateIndicators.bind(this);
     this.reportUpdate = this.reportUpdate.bind(this);
 
-    const setTimes = {start: props.start, stop: props.stop};
+    const setTimes = { start: props.start, stop: props.stop };
     this.state = {
       ...setTimes,
       setTimes,
-      startPosition: {x: 0, y: 0},
-      stopPosition: {x: 0, y: 0},
+      startPosition: { x: 0, y: 0 },
+      stopPosition: { x: 0, y: 0 },
     };
     this.lastReportedStart = {};
     this.lastReportedStop = {};
@@ -183,7 +183,10 @@ export default class TimeInterval extends PureComponent {
           const previous = state[stateTimeValue];
           if (
             timeDistance(time, previous) >
-            timeDistance({hour: time.hour + 12, minute: time.minute}, previous)
+            timeDistance(
+              { hour: time.hour + 12, minute: time.minute },
+              previous,
+            )
           ) {
             time.hour += 12;
             time.hour %= 24;
@@ -225,7 +228,7 @@ export default class TimeInterval extends PureComponent {
           return false;
         }
         this.startImagePosition.setValue(startPosition);
-        this.setState({startPosition});
+        this.setState({ startPosition });
         return true;
       }),
     );
@@ -248,7 +251,7 @@ export default class TimeInterval extends PureComponent {
           return false;
         }
         this.stopImagePosition.setValue(stopPosition);
-        this.setState({stopPosition});
+        this.setState({ stopPosition });
         return true;
       }),
     );
@@ -256,10 +259,10 @@ export default class TimeInterval extends PureComponent {
     this.turningPanResponder = PanResponder.create({
       // filter touch events outside arc line
       onStartShouldSetPanResponderCapture: (
-        {nativeEvent: {locationX, locationY}},
-        {dx, dy},
+        { nativeEvent: { locationX, locationY } },
+        { dx, dy },
       ) => {
-        const {allowLineDrag, disabled} = this.props;
+        const { allowLineDrag, disabled } = this.props;
         if (!allowLineDrag || disabled) {
           return false;
         }
@@ -274,10 +277,10 @@ export default class TimeInterval extends PureComponent {
           // drop previously requested
           return false;
         }
-        this.lastTurningCapture = {x, y};
+        this.lastTurningCapture = { x, y };
 
         // drop touches not in the distance of arc line
-        const {componentSize, indicatorSize, lineWidth} = this.props;
+        const { componentSize, indicatorSize, lineWidth } = this.props;
         const componentRadius = componentSize / 2;
         const distance = pointDistance(
           x - componentRadius,
@@ -291,7 +294,7 @@ export default class TimeInterval extends PureComponent {
         }
 
         // accept touches inside active hours
-        const time = this.indicatorPositionToTime({x, y});
+        const time = this.indicatorPositionToTime({ x, y });
         const startMinutes =
           (this.state.start.hour % 12) * 60 + this.state.start.minute;
         const stopMinutes =
@@ -310,8 +313,8 @@ export default class TimeInterval extends PureComponent {
         return false;
       },
 
-      onPanResponderGrant: ({nativeEvent: {pageX, pageY}}) => {
-        const {hour, minute} = this.indicatorPositionToTime(
+      onPanResponderGrant: ({ nativeEvent: { pageX, pageY } }) => {
+        const { hour, minute } = this.indicatorPositionToTime(
           this.lastTurningCapture,
         );
         this.turningTimeOffset = {
@@ -323,7 +326,7 @@ export default class TimeInterval extends PureComponent {
         };
       },
       onPanResponderMove: updateFilter(
-        ({pageX, pageY}) => {
+        ({ pageX, pageY }) => {
           if (!this.turningTimeOffset) {
             return;
           }
@@ -331,8 +334,8 @@ export default class TimeInterval extends PureComponent {
           const x = pageX - this.turningTimeOffset.pageX;
           const y = pageY - this.turningTimeOffset.pageY;
 
-          const {hour, minute} = this.indicatorPositionToTime({x, y});
-          const {minutes, start, stop} = this.turningTimeOffset;
+          const { hour, minute } = this.indicatorPositionToTime({ x, y });
+          const { minutes, start, stop } = this.turningTimeOffset;
           const diff = hour * 60 + minute - minutes;
           const state = {
             start: turnTime(start, diff, this.state.start),
@@ -341,7 +344,7 @@ export default class TimeInterval extends PureComponent {
           this.updateIndicators(state);
           this.setState(state);
         },
-        ({nativeEvent: {pageX, pageY}}) => ({pageX, pageY}),
+        ({ nativeEvent: { pageX, pageY } }) => ({ pageX, pageY }),
       ),
       onPanResponderRelease: () => {
         this.lastTurningCapture = null;
@@ -363,14 +366,14 @@ export default class TimeInterval extends PureComponent {
    * @returns {undefined}
    */
   componentDidUpdate(prevProps) {
-    const {start, stop} = this.props;
+    const { start, stop } = this.props;
     if (
       start.hour !== prevProps.start.hour ||
       start.minute !== prevProps.start.minute ||
       stop.hour !== prevProps.stop.hour ||
       stop.minute !== prevProps.stop.minute
     ) {
-      this.updateIndicators({start, stop});
+      this.updateIndicators({ start, stop });
     }
   }
 
@@ -380,14 +383,14 @@ export default class TimeInterval extends PureComponent {
    * @param {*} prevState Current state
    * @returns {object} new state
    */
-  static getDerivedStateFromProps({start, stop}, state) {
+  static getDerivedStateFromProps({ start, stop }, state) {
     if (
       start.hour !== state.setTimes.start.hour ||
       start.minute !== state.setTimes.start.minute ||
       stop.hour !== state.setTimes.stop.hour ||
       stop.minute !== state.setTimes.stop.minute
     ) {
-      return {start, stop, setTimes: {start, stop}};
+      return { start, stop, setTimes: { start, stop } };
     }
 
     return null;
@@ -398,7 +401,7 @@ export default class TimeInterval extends PureComponent {
    * @returns {Object} indicator position
    */
   dragPositionToIndicatorPosition(dragPosition) {
-    const {componentSize, indicatorSize} = this.props;
+    const { componentSize, indicatorSize } = this.props;
     const componentRadius = componentSize / 2;
     const indicatorRadius = indicatorSize / 2;
     const x = dragPosition.x + indicatorRadius - componentRadius;
@@ -418,7 +421,7 @@ export default class TimeInterval extends PureComponent {
    * @returns {Object} Hours, minutes on the clock
    */
   indicatorPositionToTime(indicatorPosition) {
-    const {componentSize, indicatorSize, step} = this.props;
+    const { componentSize, indicatorSize, step } = this.props;
     const componentRadius = componentSize / 2;
     const indicatorRadius = indicatorSize / 2;
     const x = indicatorPosition.x + indicatorRadius - componentRadius;
@@ -431,15 +434,15 @@ export default class TimeInterval extends PureComponent {
       hours = x > 0 ? hours : 6 + hours;
     }
     const minutes = Math.round((hours * 60) / step) * step;
-    return {hour: Math.floor(minutes / 60), minute: minutes % 60};
+    return { hour: Math.floor(minutes / 60), minute: minutes % 60 };
   }
 
   /**
    * @param {Object} time Clock time
    * @returns {Object} indicator position
    */
-  timeToindicatorPosition({hour, minute}) {
-    const {componentSize, indicatorSize} = this.props;
+  timeToindicatorPosition({ hour, minute }) {
+    const { componentSize, indicatorSize } = this.props;
     const radius = componentSize / 2 - indicatorSize / 2;
     const time = hour * 60 + minute;
     const x = Math.sin((4 * Math.PI * time) / DAY_MINS) * radius;
@@ -456,7 +459,7 @@ export default class TimeInterval extends PureComponent {
    * @returns {Object} line position
    */
   positionToLinePosition(position, out = true) {
-    const {componentSize, indicatorSize, lineWidth} = this.props;
+    const { componentSize, indicatorSize, lineWidth } = this.props;
     const componentRadius = componentSize / 2;
     const x = position.x - componentRadius;
     const y = position.y - componentRadius;
@@ -475,8 +478,8 @@ export default class TimeInterval extends PureComponent {
    * @returns {Array} ART Path instances
    */
   updateArc() {
-    const {componentSize, indicatorSize, lineWidth, lineColor} = this.props;
-    const {start, stop, startPosition, stopPosition} = this.state;
+    const { componentSize, indicatorSize, lineWidth, lineColor } = this.props;
+    const { start, stop, startPosition, stopPosition } = this.state;
 
     const SIDE = {
       TOP: {
@@ -520,7 +523,7 @@ export default class TimeInterval extends PureComponent {
         },
       },
     };
-    const getNearestSide = ({hour}) => {
+    const getNearestSide = ({ hour }) => {
       const clockHour = hour % 12;
       if (clockHour < 3) {
         return SIDE.RIGHT;
@@ -547,23 +550,25 @@ export default class TimeInterval extends PureComponent {
     };
 
     const sides = [];
-    let side = getNearestSide(start);
-    if (side === getNearestSide(stop)) {
-      const startClockMinutes = (start.hour % 12) * 60 + start.minute;
-      const stopClockMinutes = (stop.hour % 12) * 60 + stop.minute;
-      if (startClockMinutes === stopClockMinutes) {
-        return [];
-      }
-      if (startClockMinutes > stopClockMinutes) {
-        for (let i = 0; i < 4; i += 1) {
+    {
+      let side = getNearestSide(start);
+      if (side === getNearestSide(stop)) {
+        const startClockMinutes = (start.hour % 12) * 60 + start.minute;
+        const stopClockMinutes = (stop.hour % 12) * 60 + stop.minute;
+        if (startClockMinutes === stopClockMinutes) {
+          return [];
+        }
+        if (startClockMinutes > stopClockMinutes) {
+          for (let i = 0; i < 4; i += 1) {
+            sides.push(side);
+            side = getNextSide(side);
+          }
+        }
+      } else {
+        while (side !== getNearestSide(stop)) {
           sides.push(side);
           side = getNextSide(side);
         }
-      }
-    } else {
-      while (side !== getNearestSide(stop)) {
-        sides.push(side);
-        side = getNextSide(side);
       }
     }
 
@@ -668,9 +673,13 @@ export default class TimeInterval extends PureComponent {
       return result;
     }
 
+    // Single color case
+    const filteredSides = sides.filter(
+      s => distanceBetweenPoints(s.in, arcStop.in) > 0.1,
+    );
     const path = new Path();
     path.moveTo(arcStart.in.x, arcStart.in.y);
-    sides.forEach(s =>
+    filteredSides.forEach(s =>
       path.arcTo(
         s.in.x,
         s.in.y,
@@ -686,7 +695,7 @@ export default class TimeInterval extends PureComponent {
         arcRadius - lineWidth / 2,
       )
       .lineTo(arcStop.out.x, arcStop.out.y);
-    sides
+    filteredSides
       .reverse()
       .forEach(s =>
         path.counterArcTo(
@@ -702,18 +711,18 @@ export default class TimeInterval extends PureComponent {
       arcRadius + lineWidth / 2,
       arcRadius + lineWidth / 2,
     );
-    return [{id: 'simple', arc: path.close(), fill: lineColor}];
+    return [{ id: 'simple', arc: path.close(), fill: lineColor }];
   }
 
   /**
    * @returns {undefined}
    */
-  updateIndicators({start, stop}) {
+  updateIndicators({ start, stop }) {
     const startPosition = this.timeToindicatorPosition(start);
     const stopPosition = this.timeToindicatorPosition(stop);
     this.startImagePosition.setValue(startPosition);
     this.stopImagePosition.setValue(stopPosition);
-    this.setState({startPosition, stopPosition});
+    this.setState({ startPosition, stopPosition });
 
     if (this.props.onChange) {
       this.reportUpdate(start, stop);
