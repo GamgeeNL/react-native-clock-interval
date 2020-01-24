@@ -36,4 +36,4 @@ import TimeInterval from 'react-native-clock-interval';
 
 ## License
 
-[MIT License](http://opensource.org/licenses/mit-license.html). © Pavel Zarecky 2019
+[MIT License](http://opensource.org/licenses/mit-license.html). © 2019 Gamgee Netherlands BV
