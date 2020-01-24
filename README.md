@@ -1,7 +1,8 @@
 # react-native-clock-interval
+
 React Native Time interval control similar to iOS12 Bedtime picker
 
-![](clock-interval.gif)
+![example](clock-interval.gif)
 
 | react-native |  |
 |:------------:|:-----:|
