@@ -79,7 +79,7 @@ const createPanResponder = (
     onPanResponderMove: Animated.event([
       null,
       { dx: animatedPositionValue.x, dy: animatedPositionValue.y },
-    ]),
+    ], { useNativeDriver: false }),
     onPanResponderRelease: () => {
       onRelease();
     },
